@@ -1,6 +1,10 @@
 name: Publish npm package
 
 on:
+  push:
+    tags:
+      - 'dsh-context-rollover-v*'
+      - 'dsh-client-continue-v*'
   workflow_dispatch:
     inputs:
       package:
@@ -18,15 +22,38 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: publish-npm-${{ inputs.package }}
-  cancel-in-progress: false
-
 jobs:
-  publish:
-    # Only reviewed source from this repository's default branch may request OIDC.
-    if: github.repository == 'KiritoKing/dsh-plugins' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+  prepare:
+    if: github.repository == 'KiritoKing/dsh-plugins'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      package: ${{ steps.release.outputs.package }}
+      version: ${{ steps.release.outputs.version }}
+      dist-tag: ${{ steps.release.outputs.dist-tag }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - name: Check out triggered revision without publishing permission
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Validate release tag, manifest and default-branch ancestry
+        id: release
+        run: node scripts/prepare-release.mjs
+
+  publish:
+    needs: prepare
+    # The read-only preparation job must accept the revision before this job requests OIDC.
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publish-npm-${{ needs.prepare.outputs.package }}
+      cancel-in-progress: false
     timeout-minutes: 30
     environment: npm
     permissions:
@@ -42,6 +69,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           path: plugins
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
       - name: Check out exact public DSH baseline
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -59,10 +87,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          cache: pnpm
-          cache-dependency-path: |
-            plugins/pnpm-lock.yaml
-            dsh-public-rc2/pnpm-lock.yaml
+          package-manager-cache: false
       - name: Use OIDC-capable npm CLI
         run: npm install --global npm@11.5.1 --ignore-scripts
       - name: Install public baseline without lifecycle scripts
@@ -79,13 +104,14 @@ jobs:
       - name: Validate version and inspect release archives
         id: release
         env:
-          RELEASE_PACKAGE: ${{ inputs.package }}
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_PACKAGE: ${{ needs.prepare.outputs.package }}
+          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         run: node scripts/check-public.mjs --release "$RELEASE_PACKAGE" "$RELEASE_VERSION"
       - name: Publish the inspected archive with npm Trusted Publishing
         env:
           RELEASE_TARBALL: ${{ steps.release.outputs.tarball }}
+          RELEASE_DIST_TAG: ${{ needs.prepare.outputs.dist-tag }}
         run: |
           unset NODE_AUTH_TOKEN NPM_TOKEN
           test -n "$RELEASE_TARBALL"
-          npm publish "$RELEASE_TARBALL" --access public --provenance --ignore-scripts
+          npm publish "$RELEASE_TARBALL" --access public --provenance --ignore-scripts --tag "$RELEASE_DIST_TAG"

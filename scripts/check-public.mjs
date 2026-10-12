@@ -155,6 +155,7 @@ function pack(pkg) {
 if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error('Use Node.js 24')
 if (selected('--scan')) scan(root)
 if (full) run('pnpm', ['run', 'lint'])
+if (selected('--test')) run('pnpm', ['run', 'test:release'])
 if (selected('--audit')) run('pnpm', ['audit', '--prod', '--audit-level=low'])
 const packageWork = ['--typecheck', '--test', '--build', '--pack'].some(selected)
 if (packageWork) {

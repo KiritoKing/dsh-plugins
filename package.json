@@ -20,6 +20,7 @@
     "lint": "eslint .",
     "typecheck": "node scripts/check-public.mjs --typecheck",
     "test": "node scripts/check-public.mjs --test",
+    "test:release": "node --test scripts/release-request.test.mjs scripts/prepare-release.test.mjs",
     "build": "node scripts/check-public.mjs --build",
     "audit:public": "node scripts/check-public.mjs --audit",
     "pack:inspect": "node scripts/check-public.mjs --pack"

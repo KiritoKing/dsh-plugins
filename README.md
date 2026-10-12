@@ -48,18 +48,29 @@ Generated path configurations, build outputs, installed dependencies, and local 
 
 [Public compatibility](.github/workflows/ci.yml) uses isolated sibling plugin and host checkouts, prepares only host libraries/client declarations, then runs the root gate. Checkout, setup-node, and pnpm setup actions are pinned to commit SHAs. Pull-request CI has read-only repository permissions and no publishing permission.
 
-## Publishing: owner setup required
+## Automatic npm publishing
 
-[Publish npm package](.github/workflows/publish.yml) is a manual `workflow_dispatch` workflow with package and exact-version inputs. It runs only from this repository's default branch, validates the already-committed package version, runs the full gate for both packages, and publishes the selected inspected archive with public access and npm-generated provenance. It never edits a version, creates a Git tag, or adds a remote. GitHub OIDC uses the `npm` environment and `id-token: write`; no long-lived npm secret is configured.
+[Publish npm package](.github/workflows/publish.yml) runs automatically for independent package version tags: `dsh-context-rollover-v<VERSION>` or `dsh-client-continue-v<VERSION>`. A read-only preparation job rejects unknown packages, invalid versions, a version that differs from its committed manifest, or a revision outside the default branch's history. Only then does the publishing job request OIDC, run the full gate for both packages, and publish the selected inspected archive with public access and npm provenance. Stable versions use `latest`; prereleases use `next`. Published versions cannot be overwritten; a duplicate tag/manual request fails rather than skipping or silently changing dist-tags.
 
-The workflow is infrastructure, not proof of npm authorization. The owner must complete the following before it can publish:
+After merging a reviewed version change into `main`, create and push only the chosen package tag, for example:
 
-1. Confirm npm ownership or publishing rights for the `@chlrc` scope and both intended package names. For a new package that cannot yet have a Trusted Publisher entry configured, perform the necessary first-publication bootstrap with an owner-authorized interactive npm login/2FA session; do not store that credential in GitHub secrets. Inspect the exact bootstrap archive first.
-2. For **each** npm package, configure a GitHub Actions Trusted Publisher in its npm settings: organization/user `KiritoKing`, repository `dsh-plugins`, workflow filename `publish.yml`, and environment name `npm`. Match these fields exactly; the package settings, not repository files alone, authorize OIDC publication.
-3. Create the GitHub `npm` environment with required reviewers and a default-branch deployment restriction. Configure branch protections and enable private vulnerability reporting where available.
-4. Review a committed version change, ensure that version is not already published, then dispatch `publish.yml` from the default branch with its exact package name and version. Once Trusted Publishing works, remove obsolete automation tokens and restrict token publishing access as appropriate.
+```sh
+git tag dsh-client-continue-v0.1.1 <reviewed-main-commit>
+git push origin refs/tags/dsh-client-continue-v0.1.1
+```
 
-npm Trusted Publishing requires a supported GitHub-hosted runner and npm CLI 11.5.1 or newer. This workflow uses `ubuntu-latest`, Node.js 24, and npm 11.5.1. See [npm's Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) for current account setup and bootstrap requirements. No npm package, Trusted Publisher authorization, GitHub environment, or external repository setting is created by these files.
+The version above is illustrative: it must already match that commit's package manifest and must not exist on npm. No ordinary branch push publishes packages. Manual `workflow_dispatch` remains available on the default branch with package and exact-version inputs. The workflow never bumps versions, creates tags, or pushes commits. Each package has a separate publishing concurrency group. Release installs do not restore dependency caches.
+
+### One-time account setup
+
+Repository automation is not npm authorization. Before automatic publishing works:
+
+1. Confirm npm ownership or publishing rights for `@chlrc`. If a package does not exist yet, perform its first-publication bootstrap with an owner-authorized interactive npm login/2FA session using the archive inspected by `pnpm check`. Never put the credential in GitHub secrets or commit it.
+2. For **each** package, add a GitHub Actions Trusted Publisher in npm package settings: organization/user **`KiritoKing`**, repository **`dsh-plugins`**, workflow filename **`publish.yml`**, environment **`npm`**. Enable **Allow npm publish** (stage-only permission is insufficient for this workflow). Match all fields exactly.
+3. Configure the GitHub `npm` environment to allow the `main` branch plus tags matching `dsh-context-rollover-v*` and `dsh-client-continue-v*`, with no other deployment refs. Required reviewers can be added if owner approval is desired; they pause otherwise automatic publishing. Protect the default branch and release tags according to maintainer access needs.
+4. Publish a fresh reviewed version through the workflow and verify its npm registry metadata and provenance. New npm Trusted Publisher configurations may expire unless their first successful publish happens within two days; follow the current npm settings. After OIDC works, restrict traditional token publishing access and revoke obsolete automation tokens as appropriate.
+
+npm Trusted Publishing requires a supported GitHub-hosted runner and npm CLI 11.5.1 or newer. This workflow uses `ubuntu-latest`, Node.js 24, npm 11.5.1, the `npm` environment and job-scoped `id-token: write`. No long-lived npm secret is configured. See [npm's Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) for current account setup and bootstrap requirements. These files do not themselves create npm packages, package authorization, or remote environment protection rules.
 
 ## Security and licensing
 
