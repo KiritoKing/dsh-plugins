@@ -19,6 +19,7 @@ on:
         type: string
         required: true
 
+# This pinned setup-node version caches only with an explicit `cache` input; release jobs omit it.
 permissions:
   contents: read
 
@@ -42,7 +43,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          package-manager-cache: false
       - name: Validate release tag, manifest and default-branch ancestry
         id: release
         run: node scripts/prepare-release.mjs
@@ -87,7 +87,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          package-manager-cache: false
       - name: Use OIDC-capable npm CLI
         run: npm install --global npm@11.5.1 --ignore-scripts
       - name: Install public baseline without lifecycle scripts
