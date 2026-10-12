@@ -1,6 +1,6 @@
 {
   "name": "@chlrc/dsh-client-continue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Native continue button and remappable shortcut for interrupted DSH conversations.",
   "type": "module",
   "license": "MIT",
