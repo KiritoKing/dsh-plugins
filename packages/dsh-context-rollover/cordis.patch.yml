@@ -1,0 +1,11 @@
+# Host backend for preset-free profiles. Web sessions defer to their preset.
+- id: compaction-basic
+  disabled: true
+- insert:
+    - id: context-rollover
+      name: '@chlrc/dsh-context-rollover'
+      config: {}
+
+# The separate presets/standard-rollover.patch.yml declares the opt-in preset
+# through @deepseek-ai/dsh-agent-preset. No registry config or standard row is
+# overridden: the host's default selection and other presets remain unchanged.

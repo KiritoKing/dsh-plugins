@@ -1,0 +1,65 @@
+name: Public compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-compatibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: plugins
+    env:
+      DSH_CHECKOUT_DIR: ${{ github.workspace }}/dsh-public-rc2
+    steps:
+      - name: Check out plugins
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: plugins
+          persist-credentials: false
+      - name: Check out exact public DSH baseline
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 639ed015397290b3745d163aafe02ffee4aa3f84
+          path: dsh-public-rc2
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+        with:
+          version: 11.7.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: |
+            plugins/pnpm-lock.yaml
+            dsh-public-rc2/pnpm-lock.yaml
+      - name: Use OIDC-capable npm CLI
+        run: npm install --global npm@11.5.1 --ignore-scripts
+      - name: Install public baseline without lifecycle scripts
+        working-directory: dsh-public-rc2
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build host libraries and generated remote declarations
+        working-directory: dsh-public-rc2
+        run: pnpm run build:lib:host
+      - name: Build client type declarations
+        working-directory: dsh-public-rc2
+        run: pnpm exec tsc -b tsconfig.client.json
+      - name: Install plugin workspace without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Typecheck, test, build, audit, and inspect package archives
+        run: pnpm check

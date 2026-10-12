@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+
+# DSH dependencies are supplied by the separately pinned compatibility checkout.
+autoInstallPeers: false
+strictPeerDependencies: false
+
+# Only this reviewed native-tool installer may run during an explicit rebuild.
+allowBuilds:
+  esbuild: true

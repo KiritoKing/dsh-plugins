@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.cache/
+.artifacts/
+coverage/
+dist/
+lib/
+*.tgz
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+!.env.example
+tsconfig.dsh-paths.json
+tsconfig.build-paths.json
+tsconfig.compat-paths.json
+tsconfig.generated.json

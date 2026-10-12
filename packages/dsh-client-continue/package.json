@@ -1,0 +1,28 @@
+{
+  "name": "@chlrc/dsh-client-continue",
+  "version": "0.1.0",
+  "description": "Native continue button and remappable shortcut for interrupted DSH conversations.",
+  "type": "module",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/KiritoKing/dsh-plugins.git", "directory": "packages/dsh-client-continue" },
+  "homepage": "https://github.com/KiritoKing/dsh-plugins/tree/main/packages/dsh-client-continue#readme",
+  "bugs": { "url": "https://github.com/KiritoKing/dsh-plugins/issues" },
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
+    "./client": { "types": "./lib/types/client/index.d.ts", "default": "./lib/client.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["lib", "cordis.patch.yml", "LICENSE", "README.md"],
+  "publishConfig": { "access": "public" },
+  "dsh": { "client": { "platform": "web", "inject": ["@deepseek-ai/dsh-client-ui-conversation", "@deepseek-ai/dsh-client-shortcuts", "@deepseek-ai/dsh-client-ui-session"] }, "bundle": { "patch": "./cordis.patch.yml" } },
+  "peerDependencies": { "@deepseek-ai/cordis": "4.0.4" },
+  "scripts": {
+    "typecheck": "node scripts/configure.mjs && tsc -p tsconfig.generated.json --noEmit",
+    "test": "node scripts/configure.mjs && vitest run",
+    "build": "node scripts/configure.mjs && tsc -p tsconfig.generated.json --emitDeclarationOnly && node scripts/build.mjs && node scripts/smoke.mjs"
+  },
+  "engines": { "node": ">=24" },
+  "keywords": ["dsh-plugin", "deepseek-harness", "continue", "keyboard-shortcuts"]
+}

@@ -1,0 +1,3 @@
+- insert:
+    - id: chlrc-client-continue
+      name: '@chlrc/dsh-client-continue'
